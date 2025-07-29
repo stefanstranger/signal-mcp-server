@@ -71,6 +71,8 @@ def list_chats(
 @mcp.tool()
 def get_chat_messages(
     chat_name: str,
+    limit: Optional[int] = None,
+    offset: int = 0,  # Add offset for pagination
     source_dir: Path = get_default_signal_dir(),
     password: Optional[str] = None,
     key: Optional[str] = None,
@@ -82,6 +84,8 @@ def get_chat_messages(
     Get messages from a specific chat by name.
     Args:
         chat_name (str): The name of the chat to retrieve messages from.
+        limit (Optional[int]): Maximum number of messages to return.
+        offset (int): Number of messages to skip before starting to collect results.
         source_dir (Path): Path to the Signal data directory.
         password (Optional[str]): Password for encrypted data, if applicable.
         key (Optional[str]): Key for encrypted data, if applicable.
@@ -89,7 +93,7 @@ def get_chat_messages(
         include_empty (bool): Whether to include empty chats.
         include_disappearing (bool): Whether to include disappearing messages.
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing messages from the specified chat. 
+        List[Dict[str, Any]]: A list of dictionaries containing messages from the specified chat.
     """
     convos, contacts, self_contact = sigexport.data.fetch_data(
         source_dir=source_dir,
@@ -104,21 +108,26 @@ def get_chat_messages(
     for chat_id, messages in convos.items():
         contact = contacts.get(chat_id)
         if contact and contact.name == chat_name:
-            for msg in messages:
+            # Sort messages by timestamp (newest first)
+            sorted_messages = sorted(messages, key=lambda m: m.get_ts(), reverse=True)
+            
+            # Apply offset and limit
+            start_idx = offset
+            end_idx = offset + limit if limit else len(sorted_messages)
+            paginated_messages = sorted_messages[start_idx:end_idx]
+            
+            for msg in paginated_messages:
                 msg_dict = asdict(msg)
-                # Format date
+                # ... rest of your formatting code
                 date = msg_dict.get("sent_at") or msg_dict.get("timestamp")
                 if isinstance(date, (int, float)):
                     date = datetime.fromtimestamp(date / 1000)
                 elif isinstance(date, str):
                     date = datetime.fromisoformat(date)
-                # Sender logic
-                is_self = msg_dict.get("source") == self_contact.serviceId
-                sender = "Me" if is_self else (contact.name or contact.number or "Unknown")
-                # Build output dict
-                date_formatted = date.isoformat() if isinstance(date, datetime) else ""
+                sender = "Me" if msg_dict.get("source") == self_contact.serviceId else (contact.name or contact.number or "Unknown")
+                
                 chat_messages.append({
-                    "date": date_formatted,
+                    "date": date.isoformat() if isinstance(date, datetime) else "",
                     "sender": sender,
                     "body": msg_dict.get("body", ""),
                     "quote": msg_dict.get("quote", "") or "",
@@ -126,6 +135,8 @@ def get_chat_messages(
                     "reactions": msg_dict.get("reactions", []) or [],
                     "attachments": msg_dict.get("attachments", []) or []
                 })
+            break
+    
     return chat_messages
 
 
