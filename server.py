@@ -28,7 +28,7 @@ def get_default_signal_dir() -> Path:
 
 
 @mcp.tool()
-def list_chats(
+def signal_list_chats(
     source_dir: Path = get_default_signal_dir(),
     password: Optional[str] = None,
     key: Optional[str] = None,
@@ -37,7 +37,7 @@ def list_chats(
     include_disappearing: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    List all chats with their details.
+    List all Signal chats with their details.
     Args:
         source_dir (Path): Path to the Signal data directory.
         password (Optional[str]): Password for encrypted data, if applicable.
@@ -47,7 +47,7 @@ def list_chats(
         include_disappearing (bool): Whether to include disappearing messages.
        
         Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing chat details.
+        List[Dict[str, Any]]: A list of dictionaries containing Signal chat details.
         """
     convos, contacts, self_contact = sigexport.data.fetch_data(
         source_dir=source_dir,
@@ -69,7 +69,7 @@ def list_chats(
 
 
 @mcp.tool()
-def get_chat_messages(
+def signal_get_chat_messages(
     chat_name: str,
     limit: Optional[int] = None,
     offset: int = 0,  # Add offset for pagination
@@ -81,7 +81,7 @@ def get_chat_messages(
     include_disappearing: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    Get messages from a specific chat by name.
+    Get Signal messages from a specific chat by name.
     Args:
         chat_name (str): The name of the chat to retrieve messages from.
         limit (Optional[int]): Maximum number of messages to return.
@@ -93,7 +93,7 @@ def get_chat_messages(
         include_empty (bool): Whether to include empty chats.
         include_disappearing (bool): Whether to include disappearing messages.
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing messages from the specified chat.
+        List[Dict[str, Any]]: A list of dictionaries containing messages from the specified Signal chat.
     """
     convos, contacts, self_contact = sigexport.data.fetch_data(
         source_dir=source_dir,
@@ -110,12 +110,12 @@ def get_chat_messages(
         if contact and contact.name == chat_name:
             # Sort messages by timestamp (newest first)
             sorted_messages = sorted(messages, key=lambda m: m.get_ts(), reverse=True)
-            
+
             # Apply offset and limit
             start_idx = offset
             end_idx = offset + limit if limit else len(sorted_messages)
             paginated_messages = sorted_messages[start_idx:end_idx]
-            
+
             for msg in paginated_messages:
                 msg_dict = asdict(msg)
                 # ... rest of your formatting code
@@ -125,7 +125,7 @@ def get_chat_messages(
                 elif isinstance(date, str):
                     date = datetime.fromisoformat(date)
                 sender = "Me" if msg_dict.get("source") == self_contact.serviceId else (contact.name or contact.number or "Unknown")
-                
+
                 chat_messages.append({
                     "date": date.isoformat() if isinstance(date, datetime) else "",
                     "sender": sender,
@@ -136,8 +136,18 @@ def get_chat_messages(
                     "attachments": msg_dict.get("attachments", []) or []
                 })
             break
-    
+
     return chat_messages
+
+
+@mcp.prompt()
+def signal_summarize_chat(chat_name: str) -> str:
+    return f"Summarize the recent messages in the Signal chat named '{chat_name}'."
+
+
+@mcp.prompt()
+def signal_chat_topic(chat_name: str) -> str:
+    return f"What are the topics of discussion in the Signal chat named '{chat_name}'?"
 
 
 if __name__ == "__main__":
