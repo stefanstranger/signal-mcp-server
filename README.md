@@ -331,6 +331,11 @@ Generate a search prompt for finding specific text in a chat.
 - [FastMCP](https://github.com/jlowin/fastmcp)
 - [MCP Tools](https://github.com/mcptools/mcptools)
 
+## 🙏 Credits
+
+This project builds upon the excellent work of the [signal-export](https://github.com/carderne/signal-export) project by [Chris Arderne](https://github.com/carderne). The core logic for accessing and reading Signal Desktop databases is derived from and inspired by the signal-export library. I'm grateful for Chris his open-source contribution that made this MCP server possible.
+
+
 ## 📄 License
 
 MIT License
