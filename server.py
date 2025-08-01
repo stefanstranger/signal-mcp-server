@@ -34,7 +34,7 @@ def signal_list_chats(
     key: Optional[str] = None,
     chats: str = "",
     include_empty: bool = False,
-    include_disappearing: bool = True
+    include_disappearing: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     List all Signal chats with their details.
@@ -45,17 +45,17 @@ def signal_list_chats(
         chats (str): Comma-separated list of chat IDs to filter.
         include_empty (bool): Whether to include empty chats.
         include_disappearing (bool): Whether to include disappearing messages.
-       
+
         Returns:
         List[Dict[str, Any]]: A list of dictionaries containing Signal chat details.
-        """
+    """
     convos, contacts, self_contact = sigexport.data.fetch_data(
         source_dir=source_dir,
         password=password,
         key=key,
         chats=chats,
         include_empty=include_empty,
-        include_disappearing=include_disappearing
+        include_disappearing=include_disappearing,
     )
     output = []
     for chat_id in convos:
@@ -78,7 +78,7 @@ def signal_get_chat_messages(
     key: Optional[str] = None,
     chats: str = "",
     include_empty: bool = False,
-    include_disappearing: bool = True
+    include_disappearing: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     Get Signal messages from a specific chat by name.
@@ -101,7 +101,7 @@ def signal_get_chat_messages(
         key=key,
         chats=chats,
         include_empty=include_empty,
-        include_disappearing=include_disappearing
+        include_disappearing=include_disappearing,
     )
 
     chat_messages = []
@@ -124,30 +124,129 @@ def signal_get_chat_messages(
                     date = datetime.fromtimestamp(date / 1000)
                 elif isinstance(date, str):
                     date = datetime.fromisoformat(date)
-                sender = "Me" if msg_dict.get("source") == self_contact.serviceId else (contact.name or contact.number or "Unknown")
+                sender = (
+                    "Me"
+                    if msg_dict.get("source") == self_contact.serviceId
+                    else (contact.name or contact.number or "Unknown")
+                )
 
-                chat_messages.append({
-                    "date": date.isoformat() if isinstance(date, datetime) else "",
-                    "sender": sender,
-                    "body": msg_dict.get("body", ""),
-                    "quote": msg_dict.get("quote", "") or "",
-                    "sticker": msg_dict.get("sticker", "") or "",
-                    "reactions": msg_dict.get("reactions", []) or [],
-                    "attachments": msg_dict.get("attachments", []) or []
-                })
+                chat_messages.append(
+                    {
+                        "date": date.isoformat() if isinstance(date, datetime) else "",
+                        "sender": sender,
+                        "body": msg_dict.get("body", ""),
+                        "quote": msg_dict.get("quote", "") or "",
+                        "sticker": msg_dict.get("sticker", "") or "",
+                        "reactions": msg_dict.get("reactions", []) or [],
+                        "attachments": msg_dict.get("has_attachments", "") or "",
+                    }
+                )
             break
 
     return chat_messages
 
 
+@mcp.tool()
+def signal_search_chat(
+    chat_name: str,
+    query: str,
+    limit: Optional[int] = None,
+    source_dir: Path = get_default_signal_dir(),
+    password: Optional[str] = None,
+    key: Optional[str] = None,
+    chats: str = "",
+    include_empty: bool = False,
+    include_disappearing: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    Search for specific text within a Signal chat.
+    Args:
+        chat_name (str): The name of the chat to search within.
+        query (str): The text to search for in messages.
+        limit (Optional[int]): Maximum number of matching messages to return.
+        source_dir (Path): Path to the Signal data directory.
+        password (Optional[str]): Password for encrypted data, if applicable.
+        key (Optional[str]): Key for encrypted data, if applicable.
+        chats (str): Comma-separated list of chat IDs to filter.
+        include_empty (bool): Whether to include empty chats.
+        include_disappearing (bool): Whether to include disappearing messages.
+    Returns:
+        List[Dict[str, Any]]: A list of messages that match the search query.
+    """
+    convos, contacts, self_contact = sigexport.data.fetch_data(
+        source_dir=source_dir,
+        password=password,
+        key=key,
+        chats=chats,
+        include_empty=include_empty,
+        include_disappearing=include_disappearing,
+    )
+
+    matched_messages = []
+    for chat_id, messages in convos.items():
+        contact = contacts.get(chat_id)
+        if contact and contact.name == chat_name:
+            # Sort messages by timestamp (newest first)
+            sorted_messages = sorted(messages, key=lambda m: m.get_ts(), reverse=True)
+
+            for msg in sorted_messages:
+                msg_dict = asdict(msg)
+                body = msg_dict.get("body", "") or ""
+
+                # Search in message body
+                if query.lower() in body.lower():
+                    date = msg_dict.get("sent_at") or msg_dict.get("timestamp")
+                    if isinstance(date, (int, float)):
+                        date = datetime.fromtimestamp(date / 1000)
+                    elif isinstance(date, str):
+                        date = datetime.fromisoformat(date)
+
+                    sender = (
+                        "Me"
+                        if msg_dict.get("source") == self_contact.serviceId
+                        else (contact.name or contact.number or "Unknown")
+                    )
+
+                    matched_messages.append(
+                        {
+                            "date": (
+                                date.isoformat() if isinstance(date, datetime) else ""
+                            ),
+                            "sender": sender,
+                            "body": body,
+                            "quote": msg_dict.get("quote", "") or "",
+                            "sticker": msg_dict.get("sticker", "") or "",
+                            "reactions": msg_dict.get("reactions", []) or [],
+                            "attachments": msg_dict.get("has_attachments", "") or "",
+                        }
+                    )
+
+                    # Apply limit if specified
+                    if limit and len(matched_messages) >= limit:
+                        break
+            break
+
+    return matched_messages
+
+
 @mcp.prompt()
-def signal_summarize_chat(chat_name: str) -> str:
+def signal_summarize_chat_prompt(chat_name: str) -> str:
     return f"Summarize the recent messages in the Signal chat named '{chat_name}'."
 
 
 @mcp.prompt()
-def signal_chat_topic(chat_name: str) -> str:
+def signal_chat_topic_prompt(chat_name: str) -> str:
     return f"What are the topics of discussion in the Signal chat named '{chat_name}'?"
+
+
+@mcp.prompt()
+def signal_chat_sentiment_prompt(chat_name: str) -> str:
+    return f"Analyze the sentiment of messages in the Signal chat named '{chat_name}'."
+
+
+@mcp.prompt()
+def signal_search_chat_prompt(chat_name: str, query: str) -> str:
+    return f"Search for the text '{query}' in the Signal chat named '{chat_name}'."
 
 
 if __name__ == "__main__":
