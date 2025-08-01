@@ -23,8 +23,6 @@ This MCP server enables AI agents and tools to access Signal Desktop chat messag
 - Node.js and npm (for MCP inspector tools)
 - Windows, macOS, or Linux operating system
 
-## 📥 Installation Links
-
 ### 1. Signal Desktop
 
 - **Official Download Page:**  
@@ -74,7 +72,7 @@ This MCP server enables AI agents and tools to access Signal Desktop chat messag
 - **More Info:**  
   [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
 
-## 🚀 Installation
+## 🚀 Installation Signal MCP Server
 
 1. Clone the repository:
    ```powershell
@@ -103,6 +101,32 @@ This MCP server enables AI agents and tools to access Signal Desktop chat messag
    ```
 
 ## ⚙️ Configuration
+
+### 🔧 Claude Desktop Setup
+
+Usage with Claude Desktop
+Add the following to your claude_desktop_config.json file:
+
+```json
+{
+  "mcpServers": {
+    "signal-mcp-server": {
+         "type": "stdio",
+         "command": "uv",
+         "args": [
+            "run",
+            "--with",
+            "mcp[cli]",
+            "--with",
+            "signal-export",
+            "mcp",
+            "run",
+            "C:\\Github\\signal-mcp-server\\server.py"
+         ]
+    }
+  }
+}
+```
 
 ### Signal Data Directory
 
@@ -185,6 +209,49 @@ Retrieves messages from a specific chat by name.
 ]
 ```
 
+### 3. `signal_search_chat`
+Search for specific text within Signal chat messages.
+
+**Parameters:**
+- `chat_name` (required): Name of the chat to search within
+- `query` (required): Text to search for in message bodies
+- `limit` (optional): Maximum number of matching messages to return
+- `source_dir` (optional): Custom Signal data directory path
+- `password` (optional): Database password
+- `key` (optional): Encryption key
+- `include_empty` (optional): Include chats with no messages
+- `include_disappearing` (optional): Include disappearing messages
+
+**Example Response:**
+```json
+[
+  {
+    "date": "2025-07-31T10:30:00",
+    "sender": "John Doe", 
+    "body": "Let's meet at the coffee shop tomorrow",
+    "quote": "",
+    "reactions": [],
+    "attachments": []
+  }
+]
+```
+
+## 🎯 Available Prompts
+
+The server includes pre-built prompts for common analysis tasks:
+
+### 1. `signal_summarize_chat_prompt`
+Generate a summary prompt for recent messages in a specific chat.
+
+### 2. `signal_chat_topic_prompt` 
+Generate a prompt to analyze discussion topics in a chat.
+
+### 3. `signal_chat_sentiment_prompt`
+Generate a prompt to analyze message sentiment in a chat.
+
+### 4. `signal_search_chat_prompt`
+Generate a search prompt for finding specific text in a chat.
+
 ## 💡 Usage Examples
 
 ### List all chats
@@ -205,6 +272,16 @@ Retrieves messages from a specific chat by name.
 ### Summarize conversations
 ```
 "Summarize the recent conversation with John Doe"
+```
+
+### Search within a chat
+```
+"Search for messages containing 'meeting' in the Work Team chat"
+```
+
+### Analyze chat sentiment
+```
+"Analyze the sentiment of recent messages with Sarah"
 ```
 
 ## 🔒 Security & Privacy
