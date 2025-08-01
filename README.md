@@ -72,6 +72,13 @@ This MCP server enables AI agents and tools to access Signal Desktop chat messag
 - **More Info:**  
   [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
 
+### 4. Claude Desktop
+
+- **Official Download Page:**  
+  [https://claude.ai/download](https://claude.ai/download)
+
+- Download the installer for your OS (Windows, macOS) and follow the setup instructions.
+
 ## 🚀 Installation Signal MCP Server
 
 1. Clone the repository:
@@ -311,6 +318,10 @@ Generate a search prompt for finding specific text in a chat.
    - Verify the chat name is spelled correctly
    - Check if the chat has any messages
    - Try using `include_empty=True` parameter
+
+4. **"Signal-MCP-Server does not want to start in Claude Desktop"**
+   - Check if there are no other Python versions installed besides the recommended version 3.13.
+   - You may need to uninstall older Python versions installed.
 
 ## 📚 References
 
